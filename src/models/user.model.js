@@ -51,7 +51,7 @@ const userSchema = new Schema({
 userSchema.pre("save", async function (next) {
     if (!this.isMofidied("password")) return next(); // this if checks that the encryption will run only when the password is modified
 
-    this.password = bcrypt.hash(this.password, 10) // here we are using bcrypt to encrypt our password just before saving it to the database
+    this.password = await bcrypt.hash(this.password, 10) // here we are using bcrypt to encrypt our password just before saving it to the database
     next()
 }) // it is a hook which will perform the code specified just before saving the data in the data base
 
