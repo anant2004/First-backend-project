@@ -25,4 +25,10 @@ app.use(express.static(// this helps in storing media files/folders in our serve
 
 app.use(cookieParser())
 
-export {app}
+// routes
+import userRouter from "./routes/user.routes.js"
+
+//routes declaration
+app.use("/api/v1/users", userRouter)
+
+export { app }
