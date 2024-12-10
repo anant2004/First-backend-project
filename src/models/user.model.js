@@ -1,6 +1,4 @@
-import mongoose, {
-    Schema
-} from "mongoose";
+import { mongoose, Schema } from "mongoose";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
@@ -39,7 +37,7 @@ const userSchema = new Schema({
     }],
     password: {
         type: String,
-        reqired: [true, 'Password is required'],
+        required: [true, 'Password is required'],
     },
     refreshtoken: {
         type: String
@@ -49,7 +47,7 @@ const userSchema = new Schema({
 })
 
 userSchema.pre("save", async function (next) {
-    if (!this.isMofidied("password")) return next(); // this if checks that the encryption will run only when the password is modified
+    if (!this.isModified("password")) return next(); // this if checks that the encryption will run only when the password is modified
 
     this.password = await bcrypt.hash(this.password, 10) // here we are using bcrypt to encrypt our password just before saving it to the database
     next()
