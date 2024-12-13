@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiErrors.js";
 import { User } from "../models/user.model.js"
 import { uploadOnCloundinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from jsonwebtoken;
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async(userId) =>
 {
@@ -209,6 +209,7 @@ const logoutUser = asyncHandler(async(req,res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
+        console.log("old refreshToken : ", req.cookies.refreshToken);
         const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
     
         if(!incomingRefreshToken){
@@ -233,18 +234,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         }
     
         const {newAccessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
+        console.log("new refreshToken : ", newRefreshToken);
     
         return res
         .status(200)
         .cookie("newAccessToken", newAccessToken)
         .cookie("newRefreshToken", newRefreshToken)
-        .json{
+        .json(
             new ApiResponse(
                 200,
                 {newAccessToken, newRefreshToken},
                 "Tokens Refreshed"
             )
-        }
+        )
     } catch (error) {
         console.log(error)
         throw new ApiError(401, "Invalid refresh token")
