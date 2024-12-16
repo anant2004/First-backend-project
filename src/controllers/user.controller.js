@@ -9,12 +9,18 @@ const generateAccessAndRefreshToken = async(userId) =>
 {
     try{
         const user = await User.findById(userId) // this line finds user based on userId
+        if(!user){
+            throw new ApiError("400", "no user")
+        }
         const accessToken = user.generateAccessToken()// generates access token
         const refreshToken = user.generateRefreshToken()// generates refresh token
+        //console.log("refresh token : ", refreshToken)
+        if(!refreshToken){
+            throw new ApiError(400, "no refresh token generated")
+        }
         //console.log(accessToken, refreshToken)
-        user.refreshToken = refreshToken// save the refresh token to the data base
-        await user.save({validateBeforeSave: false})
-
+        user.refreshtoken = refreshToken// save the refresh token to the data base
+        const savedInDB = await user.save({validateBeforeSave: false})
         return{accessToken, refreshToken}
     }catch(error){
         throw new ApiError(500, "Something went wrong while generating refresh and access token")
@@ -31,8 +37,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // remove password and refreshToken field from response
     // check for user creation
     // return response
-    console.log(req.body);
-    console.log(req.files);
+    //console.log(req.body);
+    //console.log(req.files);
     const body = {...req.body};
     const {
         fullname,
@@ -138,7 +144,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const user= await User.findOne({
         $or: [{username}, {email}]
     })
-
+    //console.log("user in loginUser : ", user)
     if(!user){
         throw new ApiError(404,"User not registered")
     }
@@ -182,12 +188,13 @@ const logoutUser = asyncHandler(async(req,res) => {
     //reset refreshToken
     // now we will access the user using req.user._id making a query to the database
     // then we can delete it accessToken when user logsout
+    //console.log("user in logout user : ", req.user)
 
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1 // this removes the field from document
             }
         },
         {
@@ -209,24 +216,28 @@ const logoutUser = asyncHandler(async(req,res) => {
 
 // refreshing user accessToken
 const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    //console.log("incoming refresh token : ",incomingRefreshToken)
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "unauthorized request")
+    }
+
     try {
-        console.log("old refreshToken : ", req.cookies.refreshToken);
-        const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
-    
-        if(!incomingRefreshToken){
-            throw new ApiError(401, "Unauthorized request")
-        }
-    
-        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        )
+        //console.log("decoded token : ", decodedToken)
     
         const user = await User.findById(decodedToken?._id)
-    
-        if(!user){
-            throw new ApiError(401, "Invalid Refresh Token")
+        //console.log("user in refreshCookies: ",user)
+        if (!user) {
+            throw new ApiError(401, "Invalid refresh token")
         }
-    
-        if(incomingRefreshToken !== user?.refreshToken){
-            throw new ApiError(401, "Refresh Token expired or used");
+        //console.log("User Refresh Token:", user?.refreshToken);
+        if (incomingRefreshToken !== user?.refreshtoken) {
+            throw new ApiError(401, "Refresh token is expired or used")
+            
         }
     
         const options = {
@@ -234,31 +245,32 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             secure: true
         }
     
-        const {newAccessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
-        console.log("new refreshToken : ", newRefreshToken);
+        const {accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
     
         return res
         .status(200)
-        .cookie("newAccessToken", newAccessToken)
-        .cookie("newRefreshToken", newRefreshToken)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
         .json(
             new ApiResponse(
-                200,
-                {newAccessToken, newRefreshToken},
-                "Tokens Refreshed"
+                200, 
+                {accessToken, refreshToken: newRefreshToken},
+                "Access token refreshed"
             )
         )
     } catch (error) {
-        console.log(error)
-        throw new ApiError(401, "Invalid refresh token")
+        throw new ApiError(401, error?.message || "Invalid refresh token")
     }
+
 })
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
 
     const {oldPassword, newPassword} = req.body
-
+    console.log("old password",oldPassword)
+    console.log("new password",newPassword)
     const user = await User.findById(req.user?._id)
+    console.log("user : ",user)
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if(!isPasswordCorrect){
@@ -276,7 +288,11 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "Current user fetched successfully")
+    .json(new ApiResponse(
+        200,
+        req.user,
+        "Current user fetched successfully"
+    ))
 })
 
 const updateAccountDetails = asyncHandler(async (req,res) => { 
@@ -299,7 +315,10 @@ const updateAccountDetails = asyncHandler(async (req,res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200, user, "Account details updated successfully"))
+    .json(new ApiResponse(
+        200,
+        user,
+        "Account details updated successfully"))
 
 })
 
@@ -354,7 +373,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         req.user?._id,
         {
             $set: {
-                avatar: coverImage.url
+                coverimage: coverImage.url
             }
         },
         {new:true}
@@ -432,7 +451,7 @@ const getUserchannelProfile = asyncHandler(async (req,res) => {
     }
     
 ])
-console.log(channel)
+console.log("Channel : ",channel)
 
 if (!channel?.length){
     throw new ApiError(404, "Channel does not exists")

@@ -17,7 +17,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)// using jwt we decrypt the jwt token using the securitykey
         //console.log("Decoded token : ",decodedToken);
-        const user = await User.findById(decodedToken._id).select("-password -refreshToken");// now we are giving a query to the database to find the user
+        const user = await User.findById(decodedToken._id).select("-password");// now we are giving a query to the database to find the user
         //console.log(user)
 
         if(!user){// if there is no user with the above credentials then throw an error
@@ -25,7 +25,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         }
     
         req.user = user;
-        console.log(req.user);
+        //console.log(req.user);
         //console.log("this is req.user : ", req.user)
         next()
     } catch (error) {

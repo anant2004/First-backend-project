@@ -53,20 +53,20 @@ router.route("/current-user").get(
     getCurrentUser
 )
 
-router.route("/update-accout").patch(
+router.route("/update-account").patch(
     verifyJWT,
     updateAccountDetails
 )
 
 router.route("/avatar").patch(
     verifyJWT,
-    upload.single("avatar")
+    upload.single("avatar"),
     updateUserAvatar
 )
 
 router.route("/cover-image").patch(
     verifyJWT,
-    upload.single("coverImage")
+    upload.single("coverimage"),
     updateUserCoverImage
 )
 
