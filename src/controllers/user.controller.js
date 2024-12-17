@@ -79,7 +79,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
     // using multer we can access the files using req.files
     // ? here is used for optional chaining 
-    const avatarLocalPath = req.files ?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar[0]?.path;
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     let coverImageLocalPath;
